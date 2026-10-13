@@ -519,4 +519,20 @@ describe("installPortCore", () => {
     );
     assert.equal(result.ok && result.data.version, "v1.0.0/beta");
   });
+
+  it("never installs into the ports root for a tag made of dots", async () => {
+    const fake = createFake();
+
+    const result = await installPortCore(port(), {
+      ...fake.deps,
+      resolveRelease: async () => ({
+        ok: true,
+        data: release({ tag: ".." }),
+      }),
+    });
+
+    assert.equal(result.ok, true);
+    assert.equal(result.ok && result.data.installPath, `${PORT_DIR}/_..`);
+    assert.equal(fake.exists(PORT_DIR), true);
+  });
 });

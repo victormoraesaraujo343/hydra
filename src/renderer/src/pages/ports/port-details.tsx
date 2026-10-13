@@ -295,7 +295,7 @@ export default function PortDetails() {
 
   return (
     <div className="port-details">
-      <div className="port-details__hero">
+      <section className="port-details__hero">
         {heroImage && (
           <img
             className="port-details__hero-image"
@@ -305,9 +305,7 @@ export default function PortDetails() {
           />
         )}
         <div className="port-details__hero-overlay" />
-      </div>
 
-      <div className="port-details__body">
         <header className="port-details__header">
           {port.coverImageUrl && (
             <img
@@ -331,6 +329,7 @@ export default function PortDetails() {
               <Badge>{t(`status_${port.status}`)}</Badge>
               {port.tested && <Badge>{t("tested")}</Badge>}
               {installed && <Badge>{t("installed")}</Badge>}
+              {hasUpdate && <Badge>{t("update_available")}</Badge>}
             </div>
 
             <div className="port-details__meta">
@@ -346,26 +345,85 @@ export default function PortDetails() {
               {updatedDate && (
                 <span>{t("updated_at", { date: updatedDate })}</span>
               )}
-            </div>
-
-            <div>
-              <Button
-                theme="outline"
-                onClick={() =>
-                  window.electron.openExternal(
-                    `https://github.com/${port.repo}`
-                  )
-                }
-              >
-                {t("view_project")}
-              </Button>
+              {installed && (
+                <span>
+                  {t("version_installed", { version: installed.version })}
+                </span>
+              )}
             </div>
           </div>
         </header>
+      </section>
 
-        <section className="port-details__section">
-          <p className="port-details__description">{description}</p>
+      <div className="port-details__body">
+        <section className="port-details__panel">
+          <div className="port-details__actions">
+            {!installed && (
+              <Button onClick={runInstall} disabled={busy}>
+                {t("install")}
+              </Button>
+            )}
+
+            {installed && hasUpdate && latestRelease && (
+              <Button onClick={runInstall} disabled={busy}>
+                {t("update", { version: latestRelease.tag })}
+              </Button>
+            )}
+
+            {installed && (
+              <Button
+                theme={hasUpdate ? "outline" : "primary"}
+                onClick={handlePlay}
+                disabled={busy}
+              >
+                {t("play")}
+              </Button>
+            )}
+
+            {checkFormats.map((format) => (
+              <Button
+                key={format}
+                theme="outline"
+                onClick={() => runCheck(format)}
+                disabled={busy}
+              >
+                {format === "folder" ? t("check_game") : t("check_game_iso")}
+              </Button>
+            ))}
+
+            <Button
+              theme="outline"
+              className="port-details__project-button"
+              onClick={() =>
+                window.electron.openExternal(`https://github.com/${port.repo}`)
+              }
+            >
+              {t("view_project")}
+            </Button>
+          </div>
+
+          {renderProgress()}
+
+          {checkResult && (
+            <p
+              className={
+                checkResult.ok
+                  ? "port-details__result port-details__result--ok"
+                  : "port-details__result"
+              }
+            >
+              {checkResult.text}
+            </p>
+          )}
+
+          {actionError && (
+            <p className="port-details__result port-details__result--error">
+              {t(`error_${actionError}`)}
+            </p>
+          )}
         </section>
+
+        <p className="port-details__description">{description}</p>
 
         <section className="port-details__card">
           <h2 className="port-details__card-title">{t("you_need")}</h2>
@@ -404,97 +462,32 @@ export default function PortDetails() {
           </section>
         )}
 
-        <section className="port-details__card">
+        {installed && (
           <div className="port-details__actions">
-            {!installed && (
-              <Button onClick={runInstall} disabled={busy}>
-                {t("install")}
-              </Button>
-            )}
-
-            {installed && hasUpdate && latestRelease && (
-              <Button onClick={runInstall} disabled={busy}>
-                {t("update", { version: latestRelease.tag })}
-              </Button>
-            )}
-
-            {installed && (
-              <Button
-                theme={hasUpdate ? "outline" : "primary"}
-                onClick={handlePlay}
-                disabled={busy}
-              >
-                {t("play")}
-              </Button>
-            )}
-          </div>
-
-          {renderProgress()}
-
-          {installed && (
-            <p className="port-details__version">
-              {t("version_installed", { version: installed.version })}
-            </p>
-          )}
-
-          <div className="port-details__actions">
-            {checkFormats.map((format) => (
-              <Button
-                key={format}
-                theme="outline"
-                onClick={() => runCheck(format)}
-                disabled={busy}
-              >
-                {format === "folder" ? t("check_game") : t("game_format_iso")}
-              </Button>
-            ))}
-          </div>
-
-          {checkResult && (
-            <p
-              className={
-                checkResult.ok
-                  ? "port-details__result port-details__result--ok"
-                  : "port-details__result"
-              }
-            >
-              {checkResult.text}
-            </p>
-          )}
-
-          {actionError && (
-            <p className="port-details__result port-details__result--error">
-              {t(`error_${actionError}`)}
-            </p>
-          )}
-
-          {installed && (
-            <div className="port-details__actions">
-              {confirmingUninstall ? (
-                <>
-                  <Button theme="danger" onClick={runUninstall} disabled={busy}>
-                    {t("confirm", { ns: "sidebar" })}
-                  </Button>
-                  <Button
-                    theme="outline"
-                    onClick={() => setConfirmingUninstall(false)}
-                    disabled={busy}
-                  >
-                    {t("cancel", { ns: "sidebar" })}
-                  </Button>
-                </>
-              ) : (
+            {confirmingUninstall ? (
+              <>
+                <Button theme="danger" onClick={runUninstall} disabled={busy}>
+                  {t("confirm", { ns: "sidebar" })}
+                </Button>
                 <Button
                   theme="outline"
-                  onClick={() => setConfirmingUninstall(true)}
+                  onClick={() => setConfirmingUninstall(false)}
                   disabled={busy}
                 >
-                  {t("uninstall")}
+                  {t("cancel", { ns: "sidebar" })}
                 </Button>
-              )}
-            </div>
-          )}
-        </section>
+              </>
+            ) : (
+              <Button
+                theme="outline"
+                onClick={() => setConfirmingUninstall(true)}
+                disabled={busy}
+              >
+                {t("uninstall")}
+              </Button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

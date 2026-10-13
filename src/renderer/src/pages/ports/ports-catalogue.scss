@@ -1,17 +1,6 @@
 .ports-catalogue {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  width: 100%;
-  min-width: 0;
-
-  &__subtitle {
-    margin: 0;
-    font-size: 14px;
-    color: rgba(255, 255, 255, 0.6);
-  }
-
   &__filters {
+    grid-column: 1 / -1;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -31,33 +20,8 @@
     }
   }
 
-  &__sort {
-    margin-left: auto;
-    flex-basis: 220px;
-  }
-
-  &__grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 16px;
-    align-content: start;
-
-    @media (max-width: 1280px) {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    @media (max-width: 768px) {
-      grid-template-columns: minmax(0, 1fr);
-    }
-  }
-
-  &__skeleton {
-    height: 220px;
-    border-radius: 8px;
-    border: solid 1px rgba(255, 255, 255, 0.15);
-  }
-
   &__state {
+    grid-column: 1 / -1;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -72,10 +36,6 @@
     &__filters {
       flex-direction: column;
       align-items: stretch;
-    }
-
-    &__sort {
-      margin-left: 0;
     }
 
     &__select {

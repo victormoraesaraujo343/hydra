@@ -80,8 +80,11 @@ const step = async <T>(
 const removeQuietly = (deps: PortInstallerDeps, target: string) =>
   deps.remove(target).catch(() => undefined);
 
-const sanitizeSegment = (value: string): string =>
-  value.replace(/[^A-Za-z0-9._-]/g, "_");
+/** Makes a release tag safe as one folder name (never "", "." or ".."). */
+const sanitizeSegment = (value: string): string => {
+  const safe = value.replace(/[^A-Za-z0-9._-]/g, "_");
+  return /^\.*$/.test(safe) ? `_${safe}` : safe;
+};
 
 const isInsideRoot = (relativePath: string): boolean => {
   const normalized = path.normalize(relativePath);
@@ -145,6 +148,9 @@ const runInstall = async (
   if (!asset) throw new PortInstallFailure("no_asset_for_platform");
 
   const fileName = path.basename(release.fileName);
+  if (!fileName || fileName === "." || fileName === "..") {
+    throw new PortInstallFailure("release_unavailable");
+  }
 
   const tempRoot = await step("download_failed", () => deps.tempDir());
   state.tempDir = tempRoot;

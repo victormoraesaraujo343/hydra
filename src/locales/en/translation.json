@@ -247,7 +247,6 @@
     "platforms": "Platforms"
   },
   "ports": {
-    "title": "Ports",
     "subtitle": "Native PC ports of console games. Bring your own copy of the game.",
     "status_playable": "Playable",
     "status_partial": "Partial",
@@ -286,6 +285,7 @@
     "installing_extracting": "Extracting…",
     "installing_finalizing": "Adding to your library…",
     "check_game": "Check my game folder",
+    "check_game_iso": "Check my ISO file",
     "check_ok": "Looks right{{titleId}}. Point the port to this folder when it asks.",
     "check_not_found": "That path doesn't exist.",
     "check_missing_files": "Missing: {{files}}",
@@ -301,7 +301,7 @@
     "error_extract_failed": "Couldn't extract the download.",
     "error_executable_not_found": "The port's program wasn't found in the download.",
     "error_not_installed": "This port isn't installed.",
-    "error_already_installing": "Already installing.",
+    "error_already_installing": "This port is busy. Try again in a moment.",
     "error_catalogue_unavailable": "Couldn't load the ports list.",
     "platform_ps4": "PS4",
     "platform_ps3": "PS3",

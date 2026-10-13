@@ -8,7 +8,6 @@ export interface CreateCustomGameInput {
   iconUrl?: string | null;
   logoImageUrl?: string | null;
   libraryHeroImageUrl?: string | null;
-  objectId?: string;
 }
 
 export const createCustomGame = async ({
@@ -17,9 +16,8 @@ export const createCustomGame = async ({
   iconUrl,
   logoImageUrl,
   libraryHeroImageUrl,
-  objectId: providedObjectId,
 }: CreateCustomGameInput): Promise<Game> => {
-  const objectId = providedObjectId ?? randomUUID();
+  const objectId = randomUUID();
   const shop: GameShop = "custom";
   const gameKey = levelKeys.game(shop, objectId);
 

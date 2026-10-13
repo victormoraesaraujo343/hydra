@@ -5,7 +5,8 @@ import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import { Button } from "@renderer/components/button/button";
 import { CheckboxField } from "@renderer/components/checkbox-field/checkbox-field";
 import { SelectField } from "@renderer/components/select-field/select-field";
-import { useAppSelector } from "@renderer/hooks";
+import { useAppSelector, useFormat } from "@renderer/hooks";
+import { CatalogueModeToggle } from "@renderer/pages/catalogue/catalogue-mode-toggle";
 
 import type { PortCatalogueEntry, PortPlatform, PortStatus } from "@types";
 
@@ -41,8 +42,13 @@ const sortPorts = (
   }
 };
 
+/**
+ * The catalogue page in Ports mode. Reuses the catalogue page layout (header
+ * row, card grid, sidebar with the mode toggle) with the ports data.
+ */
 export function PortsCatalogue() {
   const { t } = useTranslation("ports");
+  const { formatNumber } = useFormat();
 
   const titleFilter = useAppSelector(
     (state) => state.catalogueSearch.filters.title
@@ -112,71 +118,99 @@ export function PortsCatalogue() {
   ];
 
   return (
-    <div className="ports-catalogue">
-      <p className="ports-catalogue__subtitle">{t("subtitle")}</p>
+    <div className="catalogue">
+      <div className="catalogue__header">
+        <div className="catalogue__header-row">
+          <div className="catalogue__header-summary">
+            <span className="catalogue__result-count">
+              {t("result_count", {
+                ns: "catalogue",
+                resultCount: formatNumber(visiblePorts.length),
+              })}
+            </span>
+            <span className="catalogue__filters-hint">{t("subtitle")}</span>
+          </div>
 
-      <div className="ports-catalogue__filters">
-        <SelectField
-          theme="dark"
-          className="ports-catalogue__select"
-          value={platform}
-          options={platformSelectOptions}
-          onChange={(event) =>
-            setPlatform(event.target.value as PortPlatform | "")
-          }
-        />
-
-        <SelectField
-          theme="dark"
-          className="ports-catalogue__select"
-          value={status}
-          options={statusOptions}
-          onChange={(event) => setStatus(event.target.value as PortStatus | "")}
-        />
-
-        <CheckboxField
-          label={t("filter_tested_only")}
-          checked={testedOnly}
-          onChange={(event) => setTestedOnly(event.target.checked)}
-        />
-
-        <SelectField
-          theme="dark"
-          className="ports-catalogue__select ports-catalogue__sort"
-          value={sort}
-          options={sortOptions}
-          onChange={(event) => setSort(event.target.value as PortSortValue)}
-        />
+          <div className="catalogue__sort-inline">
+            <span className="catalogue__sort-label">
+              {t("sort_by", { ns: "catalogue" })}
+            </span>
+            <SelectField
+              theme="dark"
+              className="catalogue__sort-select"
+              value={sort}
+              options={sortOptions}
+              onChange={(event) => setSort(event.target.value as PortSortValue)}
+            />
+          </div>
+        </div>
       </div>
 
-      {error ? (
-        <div className="ports-catalogue__state">
-          <p>{t("catalogue_unavailable")}</p>
-          <Button theme="outline" onClick={reload} disabled={loading}>
-            {t("retry")}
-          </Button>
-        </div>
-      ) : loading && !catalogue ? (
-        <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
-          <div className="ports-catalogue__grid">
-            {Array.from({ length: SKELETON_COUNT }).map((_, index) => (
-              <Skeleton key={index} className="ports-catalogue__skeleton" />
-            ))}
-          </div>
-        </SkeletonTheme>
-      ) : visiblePorts.length === 0 ? (
-        <p className="ports-catalogue__state">{t("empty")}</p>
-      ) : (
-        <div className="ports-catalogue__grid">
-          {visiblePorts.map((port) => (
-            <PortItem
-              key={port.id}
-              port={port}
-              installed={installedById[port.id]}
+      <div className="catalogue__content">
+        <div className="catalogue__games-container catalogue__games-container--classics">
+          <div className="ports-catalogue__filters">
+            <SelectField
+              theme="dark"
+              className="ports-catalogue__select"
+              value={platform}
+              options={platformSelectOptions}
+              onChange={(event) =>
+                setPlatform(event.target.value as PortPlatform | "")
+              }
             />
-          ))}
+
+            <SelectField
+              theme="dark"
+              className="ports-catalogue__select"
+              value={status}
+              options={statusOptions}
+              onChange={(event) =>
+                setStatus(event.target.value as PortStatus | "")
+              }
+            />
+
+            <CheckboxField
+              label={t("filter_tested_only")}
+              checked={testedOnly}
+              onChange={(event) => setTestedOnly(event.target.checked)}
+            />
+          </div>
+
+          {error ? (
+            <div className="ports-catalogue__state">
+              <p>{t("catalogue_unavailable")}</p>
+              <Button theme="outline" onClick={reload} disabled={loading}>
+                {t("retry")}
+              </Button>
+            </div>
+          ) : loading && !catalogue ? (
+            <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
+              {Array.from({ length: SKELETON_COUNT }).map((_, index) => (
+                <Skeleton
+                  key={index}
+                  className="catalogue__skeleton catalogue__skeleton--classics"
+                />
+              ))}
+            </SkeletonTheme>
+          ) : visiblePorts.length === 0 ? (
+            <p className="ports-catalogue__state">{t("empty")}</p>
+          ) : (
+            visiblePorts.map((port) => (
+              <PortItem
+                key={port.id}
+                port={port}
+                installed={installedById[port.id]}
+              />
+            ))
+          )}
         </div>
-      )}
+
+        <div className="catalogue__filters-container">
+          <div className="catalogue__filters-sections">
+            <CatalogueModeToggle />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

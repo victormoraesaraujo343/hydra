@@ -1868,7 +1868,6 @@
     "platforms": "Plataformas"
   },
   "ports": {
-    "title": "Ports",
     "subtitle": "Versões nativas de PC de jogos de console. Use a sua cópia do jogo.",
     "status_playable": "Jogável",
     "status_partial": "Parcial",
@@ -1907,6 +1906,7 @@
     "installing_extracting": "Extraindo…",
     "installing_finalizing": "Colocando na biblioteca…",
     "check_game": "Conferir a pasta do meu jogo",
+    "check_game_iso": "Conferir meu arquivo ISO",
     "check_ok": "Parece certo{{titleId}}. Aponte o port pra esta pasta quando ele pedir.",
     "check_not_found": "Esse caminho não existe.",
     "check_missing_files": "Faltando: {{files}}",
@@ -1922,7 +1922,7 @@
     "error_extract_failed": "Não deu pra extrair o download.",
     "error_executable_not_found": "O programa do port não foi encontrado no download.",
     "error_not_installed": "Este port não está instalado.",
-    "error_already_installing": "Já está instalando.",
+    "error_already_installing": "Este port está ocupado. Tente de novo em instantes.",
     "error_catalogue_unavailable": "Não deu pra carregar a lista de ports.",
     "platform_ps4": "PS4",
     "platform_ps3": "PS3",

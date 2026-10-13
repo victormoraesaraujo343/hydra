@@ -233,8 +233,8 @@ export default function Catalogue() {
     hasResultsRef.current = results.length > 0;
   }, [results.length]);
 
-  const isModeTransitioning = mode !== "ports" && resultsMode !== mode;
-  const showSkeleton = mode !== "ports" && (isLoading || isModeTransitioning);
+  const isModeTransitioning = resultsMode !== mode;
+  const showSkeleton = isLoading || isModeTransitioning;
 
   useEffect(() => {
     if (mode === "ports") return;
@@ -633,6 +633,8 @@ export default function Catalogue() {
     "verified",
   ]);
 
+  if (mode === "ports") return <PortsCatalogue />;
+
   return (
     <div className="catalogue" ref={cataloguePageRef}>
       <ClassicsOnboardingModal
@@ -640,44 +642,42 @@ export default function Catalogue() {
         onClose={() => setShowClassicsOnboarding(false)}
       />
       <div className="catalogue__header">
-        {mode !== "ports" && (
-          <div className="catalogue__header-row">
-            <div className="catalogue__header-summary">
-              <span className="catalogue__result-count">
-                {t("result_count", {
-                  resultCount: formatNumber(itemsCount),
-                })}
+        <div className="catalogue__header-row">
+          <div className="catalogue__header-summary">
+            <span className="catalogue__result-count">
+              {t("result_count", {
+                resultCount: formatNumber(itemsCount),
+              })}
+            </span>
+            {selectedFiltersCount === 0 && (
+              <span className="catalogue__filters-hint">
+                {t("filters_sidebar_hint")}
               </span>
-              {selectedFiltersCount === 0 && (
-                <span className="catalogue__filters-hint">
-                  {t("filters_sidebar_hint")}
-                </span>
-              )}
-            </div>
-
-            <div className="catalogue__sort-inline">
-              <span className="catalogue__sort-label">{t("sort_by")}</span>
-              <SelectField
-                theme="dark"
-                className="catalogue__sort-select"
-                value={
-                  sortValues.includes(selectedSortValue as CatalogueSortValue)
-                    ? selectedSortValue
-                    : "popularity:desc"
-                }
-                options={sortOptions}
-                onChange={(event) => {
-                  const [sortBy, sortOrder] = event.target.value.split(":") as [
-                    CatalogueSearchPayload["sortBy"],
-                    CatalogueSearchPayload["sortOrder"],
-                  ];
-
-                  dispatch(setFilters({ sortBy, sortOrder }));
-                }}
-              />
-            </div>
+            )}
           </div>
-        )}
+
+          <div className="catalogue__sort-inline">
+            <span className="catalogue__sort-label">{t("sort_by")}</span>
+            <SelectField
+              theme="dark"
+              className="catalogue__sort-select"
+              value={
+                sortValues.includes(selectedSortValue as CatalogueSortValue)
+                  ? selectedSortValue
+                  : "popularity:desc"
+              }
+              options={sortOptions}
+              onChange={(event) => {
+                const [sortBy, sortOrder] = event.target.value.split(":") as [
+                  CatalogueSearchPayload["sortBy"],
+                  CatalogueSearchPayload["sortOrder"],
+                ];
+
+                dispatch(setFilters({ sortBy, sortOrder }));
+              }}
+            />
+          </div>
+        </div>
 
         {selectedFiltersCount > 0 && (
           <div className="catalogue__header-row catalogue__header-row--filters">
@@ -743,9 +743,7 @@ export default function Catalogue() {
             "catalogue__games-container--classics": mode === "classics",
           })}
         >
-          {mode === "ports" ? (
-            <PortsCatalogue />
-          ) : showSkeleton ? (
+          {showSkeleton ? (
             <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
               {Array.from({ length: PAGE_SIZE }).map((_, i) => (
                 <Skeleton
@@ -764,20 +762,18 @@ export default function Catalogue() {
             results.map((game) => <GameItem key={game.id} game={game} />)
           )}
 
-          {mode !== "ports" && (
-            <div className="catalogue__pagination-container">
-              <Pagination
-                page={page}
-                totalPages={Math.ceil(itemsCount / PAGE_SIZE)}
-                onPageChange={(page) => {
-                  dispatch(setPage(page));
-                  if (cataloguePageRef.current) {
-                    cataloguePageRef.current.scrollTop = 0;
-                  }
-                }}
-              />
-            </div>
-          )}
+          <div className="catalogue__pagination-container">
+            <Pagination
+              page={page}
+              totalPages={Math.ceil(itemsCount / PAGE_SIZE)}
+              onPageChange={(page) => {
+                dispatch(setPage(page));
+                if (cataloguePageRef.current) {
+                  cataloguePageRef.current.scrollTop = 0;
+                }
+              }}
+            />
+          </div>
         </div>
 
         <div className="catalogue__filters-container">

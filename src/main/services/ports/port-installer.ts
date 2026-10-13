@@ -26,7 +26,7 @@ const TEXT_FETCH_TIMEOUT_MS = 15_000;
 const TAR_COMPRESSED_PATTERN = /\.(tar\.gz|tgz|tar\.xz)$/i;
 const ARCHIVE_PATTERN = /\.(zip|7z|rar|tar|tar\.gz|tgz|tar\.xz)$/i;
 
-const installingPortIds = new Set<string>();
+const busyPortIds = new Set<string>();
 
 const readInstalled = async (portId: string): Promise<InstalledPort | null> => {
   try {
@@ -123,7 +123,21 @@ const buildDeps = (): PortInstallerDeps => ({
       name: entry.name,
       isDirectory: entry.isDirectory(),
     })),
-  makeExecutable: (target) => fs.promises.chmod(target, 0o755),
+  makeExecutable: async (target) => {
+    // An archive may ship the executable as a symlink; never chmod anything
+    // that resolves outside the ports folder.
+    const portsRoot = await fs.promises.realpath(
+      path.join(await getDownloadsPath(), "Ports")
+    );
+    const relative = path.relative(
+      portsRoot,
+      await fs.promises.realpath(target)
+    );
+    if (relative.startsWith("..") || path.isAbsolute(relative)) {
+      throw new Error(`Port executable escapes the ports folder: ${target}`);
+    }
+    await fs.promises.chmod(target, 0o755);
+  },
   mkdir: async (dir) => {
     await fs.promises.mkdir(dir, { recursive: true });
   },
@@ -149,24 +163,25 @@ const buildDeps = (): PortInstallerDeps => ({
 export const installPort = async (
   portId: string
 ): Promise<PortResult<InstalledPort>> => {
-  if (installingPortIds.has(portId)) {
+  if (busyPortIds.has(portId)) {
     return { ok: false, error: "already_installing" };
   }
 
-  let port: PortCatalogueEntry | null;
+  // Claimed before any await so two quick calls cannot both start.
+  busyPortIds.add(portId);
   try {
-    port = await findPort(portId);
-  } catch (error) {
-    logger.error(`Port catalogue lookup failed for ${portId}`, error);
-    return { ok: false, error: "catalogue_unavailable" };
-  }
-  if (!port) return { ok: false, error: "port_not_found" };
+    let port: PortCatalogueEntry | null;
+    try {
+      port = await findPort(portId);
+    } catch (error) {
+      logger.error(`Port catalogue lookup failed for ${portId}`, error);
+      return { ok: false, error: "catalogue_unavailable" };
+    }
+    if (!port) return { ok: false, error: "port_not_found" };
 
-  installingPortIds.add(portId);
-  try {
     return await installPortCore(port, buildDeps());
   } finally {
-    installingPortIds.delete(portId);
+    busyPortIds.delete(portId);
   }
 };
 
@@ -174,18 +189,25 @@ export const installPort = async (
 export const uninstallPort = async (
   portId: string
 ): Promise<PortResult<null>> => {
-  if (installingPortIds.has(portId)) {
+  if (busyPortIds.has(portId)) {
     return { ok: false, error: "already_installing" };
   }
 
-  const record = await readInstalled(portId);
-  if (!record) return { ok: false, error: "not_installed" };
+  busyPortIds.add(portId);
+  try {
+    const record = await readInstalled(portId);
+    if (!record) return { ok: false, error: "not_installed" };
 
-  await fs.promises.rm(record.installPath, { recursive: true, force: true });
-  await removePortLibraryGame(record.gameObjectId);
-  await portsSublevel.del(portId);
-
-  return { ok: true, data: null };
+    await fs.promises.rm(record.installPath, { recursive: true, force: true });
+    // Drop the now empty <downloads>/Ports/<portId> folder; rmdir refuses
+    // non-empty folders, so anything else left there is kept.
+    await fs.promises.rmdir(path.dirname(record.installPath)).catch(() => {});
+    await removePortLibraryGame(record.gameObjectId);
+    await portsSublevel.del(portId);
+    return { ok: true, data: null };
+  } finally {
+    busyPortIds.delete(portId);
+  }
 };
 
 /** Installed ports whose executable still exists on disk. */
