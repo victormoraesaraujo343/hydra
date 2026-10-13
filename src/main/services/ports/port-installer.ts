@@ -111,8 +111,43 @@ const moveEntry = async (from: string, to: string): Promise<void> => {
   }
 };
 
+/**
+ * Zips made on Windows sometimes store "dir\file" entry names. Outside Windows
+ * 7-Zip extracts those as flat files with a backslash in the name, so the game
+ * cannot find its data. Turn them into real folders, never outside outputDir.
+ */
+const splitBackslashEntries = async (dir: string): Promise<void> => {
+  for (const entry of await fs.promises.readdir(dir, { withFileTypes: true })) {
+    const current = path.join(dir, entry.name);
+
+    if (entry.name.includes("\\")) {
+      const segments = entry.name.split("\\").filter(Boolean);
+      if (
+        segments.length === 0 ||
+        segments.some((s) => s === "." || s === "..")
+      ) {
+        throw new Error(`Unsafe archive entry: ${entry.name}`);
+      }
+      const target = path.join(dir, ...segments);
+      await fs.promises.mkdir(path.dirname(target), { recursive: true });
+      await fs.promises.rename(current, target);
+      if (entry.isDirectory()) await splitBackslashEntries(target);
+    } else if (entry.isDirectory()) {
+      await splitBackslashEntries(current);
+    }
+  }
+};
+
 /** Extracts an archive. Compressed tarballs are unpacked twice: gzip/xz, then tar. */
 const extractArchive = async (
+  archivePath: string,
+  outputDir: string
+): Promise<void> => {
+  await extractWith7zip(archivePath, outputDir);
+  if (process.platform !== "win32") await splitBackslashEntries(outputDir);
+};
+
+const extractWith7zip = async (
   archivePath: string,
   outputDir: string
 ): Promise<void> => {
