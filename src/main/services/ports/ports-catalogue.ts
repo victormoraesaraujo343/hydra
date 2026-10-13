@@ -7,7 +7,7 @@ import { logger } from "../logger";
 import { validatePortsCatalogue } from "./ports-catalogue-validate";
 
 export const DEFAULT_PORTS_CATALOGUE_URL =
-  "https://raw.githubusercontent.com/victormoraesaraujo343/lab-hydra-ports-catalogue/main/ports-catalogue.json";
+  "https://raw.githubusercontent.com/victormoraesaraujo343/ports-catalogue/main/ports-catalogue.json";
 
 const CATALOGUE_TIMEOUT_MS = 15_000;
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
