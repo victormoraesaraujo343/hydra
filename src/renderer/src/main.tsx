@@ -32,6 +32,7 @@ import Catalogue from "./pages/catalogue/catalogue";
 import Home from "./pages/home/home";
 import Downloads from "./pages/downloads/downloads";
 import GameDetails from "./pages/game-details/game-details";
+import PortDetails from "./pages/ports/port-details";
 import Settings from "./pages/settings/settings";
 import Profile from "./pages/profile/profile";
 import Achievements from "./pages/achievements/achievements";
@@ -143,6 +144,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                     path="/game/:shop/:objectId"
                     element={<GameDetails />}
                   />
+                  <Route path="/port/:portId" element={<PortDetails />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/profile/:userId" element={<Profile />} />
                   <Route path="/achievements" element={<Achievements />} />
