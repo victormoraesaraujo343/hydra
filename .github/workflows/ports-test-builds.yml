@@ -111,6 +111,7 @@ jobs:
 
       - name: Build Windows
         if: matrix.os == 'windows-2022'
+        shell: bash
         run: yarn build:native && npx electron-vite build && npx electron-builder --publish never --win nsis portable -c.appId=gg.hydralauncher.hydra.ports -c.productName="Hydra Ports" -c.extraMetadata.name=hydralauncher-ports -c.publish.owner=victormoraesaraujo343
         env:
           MAIN_VITE_API_URL: ${{ vars.MAIN_VITE_STAGING_API_URL }}
