@@ -3,6 +3,7 @@ import { SettingsDebrid } from "./settings-debrid";
 import { SettingsRetroAchievements } from "./settings-retroachievements";
 import { SettingsSteam } from "./settings-steam";
 import { SettingsEpic } from "./settings-epic";
+import { SettingsSteamGridDb } from "./settings-steamgriddb";
 
 export function SettingsContextIntegrations() {
   const { t } = useTranslation("settings");
@@ -20,6 +21,12 @@ export function SettingsContextIntegrations() {
       <div className="settings-context-panel__group">
         <h3>{t("debrid_services")}</h3>
         <SettingsDebrid />
+      </div>
+
+      <hr className="settings-context-panel__divider" />
+
+      <div className="settings-context-panel__group">
+        <SettingsSteamGridDb />
       </div>
     </div>
   );

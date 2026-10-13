@@ -7,6 +7,8 @@ import { Link } from "@renderer/components/link/link";
 
 import type { InstalledPort, PortCatalogueEntry } from "@types";
 
+import { usePortCover } from "./use-port-cover";
+
 import "./port-item.scss";
 
 /** 1234 -> "1.2k", 999 -> "999", 1500000 -> "1.5M". */
@@ -32,16 +34,21 @@ export const PortItem = memo(function PortItem({
   installed,
 }: Readonly<PortItemProps>) {
   const { t } = useTranslation("ports");
+  const { cover: fetchedCover, ref } = usePortCover(
+    port,
+    !port.coverImageUrl && !port.heroImageUrl
+  );
+  const coverUrl = port.coverImageUrl ?? fetchedCover;
 
   return (
-    <article className="port-item">
+    <article className="port-item" ref={ref}>
       <Link to={`/port/${port.id}`} className="port-item__link">
         <div className="port-item__cover">
-          {port.coverImageUrl ? (
+          {coverUrl ? (
             <>
               <img
                 className="port-item__cover-backdrop"
-                src={port.coverImageUrl}
+                src={coverUrl}
                 alt=""
                 aria-hidden="true"
                 loading="lazy"
@@ -49,7 +56,7 @@ export const PortItem = memo(function PortItem({
               />
               <img
                 className="port-item__cover-image"
-                src={port.coverImageUrl}
+                src={coverUrl}
                 alt={port.title}
                 loading="lazy"
                 decoding="async"

@@ -26,6 +26,7 @@ export const levelKeys = {
   emulators: "emulators",
   ports: "ports",
   portsCatalogueCache: "portsCatalogueCache",
+  portsCoversCache: "portsCoversCache",
   retroarch: "retroarch",
   retroArchSouvenirConfigBackups: "retroarch-souvenir-config-backups",
   duckStationSouvenirConfigBackups: "duckstation-souvenir-config-backups",

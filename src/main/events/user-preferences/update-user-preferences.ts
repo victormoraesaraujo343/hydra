@@ -17,6 +17,7 @@ import {
   prepareLinuxGameCaptureSession,
   stopAllLinuxGameCaptureSessions,
 } from "@main/services/linux-game-capture-session";
+import { clearPortCoverMisses } from "@main/services/ports/port-covers";
 
 const updateLanguagePreference = async (language: string | undefined) => {
   if (!language) return;
@@ -123,6 +124,18 @@ const applyDownloadManagerPreferences = async (
   }
 };
 
+const updatePortCoversPreferences = async (
+  preferences: Partial<UserPreferences>,
+  userPreferences: UserPreferences | null
+) => {
+  if (!Object.hasOwn(preferences, "steamGridDbApiKey")) return;
+  if (preferences.steamGridDbApiKey === userPreferences?.steamGridDbApiKey) {
+    return;
+  }
+
+  await clearPortCoverMisses();
+};
+
 const updateUserPreferences = async (
   _event: Electron.IpcMainInvokeEvent,
   preferences: Partial<UserPreferences>
@@ -157,6 +170,7 @@ const updateUserPreferences = async (
   Wine.syncUserPreferences(updatedPreferences);
 
   await updateAchievementSouvenirPreference(preferences);
+  await updatePortCoversPreferences(preferences, userPreferences);
 
   WindowManager.sendToAppWindows(
     "on-user-preferences-updated",

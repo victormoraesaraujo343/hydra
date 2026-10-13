@@ -112,6 +112,7 @@ import type {
   PortResult,
   PortInstallProgress,
   PortGameCheckResult,
+  PortCovers,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -706,6 +707,7 @@ declare global {
     ) => Promise<PortResult<PortsCatalogue>>;
     getInstalledPorts: () => Promise<InstalledPort[]>;
     getPortLatestRelease: (portId: string) => Promise<PortResult<PortRelease>>;
+    getPortCover: (portId: string) => Promise<PortResult<PortCovers>>;
     installPort: (portId: string) => Promise<PortResult<InstalledPort>>;
     uninstallPort: (portId: string) => Promise<PortResult<null>>;
     checkPortGameFolder: (

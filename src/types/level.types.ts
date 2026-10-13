@@ -145,6 +145,7 @@ export interface UserPreferences {
   downloadDirectories?: DownloadDirectoryPreference[];
   optionalDownloadsPaths?: string[];
   ggDealsApiKey?: string | null;
+  steamGridDbApiKey?: string | null;
   language?: string;
   realDebridApiToken?: string | null;
   premiumizeApiToken?: string | null;

@@ -591,6 +591,7 @@ contextBridge.exposeInMainWorld("electron", {
   getInstalledPorts: () => ipcRenderer.invoke("getInstalledPorts"),
   getPortLatestRelease: (portId: string) =>
     ipcRenderer.invoke("getPortLatestRelease", portId),
+  getPortCover: (portId: string) => ipcRenderer.invoke("getPortCover", portId),
   installPort: (portId: string) => ipcRenderer.invoke("installPort", portId),
   uninstallPort: (portId: string) =>
     ipcRenderer.invoke("uninstallPort", portId),

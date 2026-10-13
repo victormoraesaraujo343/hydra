@@ -18,6 +18,7 @@ import type {
 } from "@types";
 
 import { formatStars } from "./port-item";
+import { usePortCover } from "./use-port-cover";
 import { usePorts } from "./use-ports";
 
 import "./port-details.scss";
@@ -49,6 +50,15 @@ export default function PortDetails() {
 
   const port = catalogue?.ports.find((entry) => entry.id === portId);
   const installed = installedById[portId];
+  const {
+    cover: fetchedCover,
+    hero: fetchedHero,
+    error: coversError,
+    ref: heroRef,
+  } = usePortCover(
+    port,
+    Boolean(port) && !port?.coverImageUrl && !port?.heroImageUrl
+  );
 
   const [latestRelease, setLatestRelease] = useState<PortRelease | null>(null);
   const [busy, setBusy] = useState(false);
@@ -104,7 +114,9 @@ export default function PortDetails() {
   }
 
   const language = i18n.language;
-  const heroImage = port.heroImageUrl ?? port.coverImageUrl;
+  const coverImage = port.coverImageUrl ?? fetchedCover;
+  const heroImage =
+    port.heroImageUrl ?? port.coverImageUrl ?? fetchedHero ?? fetchedCover;
   const description = pickText(port.description, language);
   const notes = port.game.notes ? pickText(port.game.notes, language) : null;
   const requirements = port.requirements
@@ -297,7 +309,7 @@ export default function PortDetails() {
 
   return (
     <div className="port-details">
-      <section className="port-details__hero">
+      <section className="port-details__hero" ref={heroRef}>
         {heroImage && (
           <img
             className="port-details__hero-image"
@@ -309,10 +321,10 @@ export default function PortDetails() {
         <div className="port-details__hero-overlay" />
 
         <header className="port-details__header">
-          {port.coverImageUrl && (
+          {coverImage && (
             <img
               className="port-details__cover"
-              src={port.coverImageUrl}
+              src={coverImage}
               alt={port.title}
             />
           )}
@@ -353,6 +365,12 @@ export default function PortDetails() {
                 </span>
               )}
             </div>
+
+            {coversError === "invalid_covers_key" && (
+              <p className="port-details__source-note">
+                {t("steamgriddb_invalid_key")}
+              </p>
+            )}
 
             {port.source === "auto" && (
               <p className="port-details__source-note">

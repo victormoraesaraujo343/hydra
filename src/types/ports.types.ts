@@ -89,6 +89,17 @@ export interface PortRelease {
   sha256Url: string | null;
 }
 
+/** Cover and hero art for a port, from the catalogue or SteamGridDB. */
+export interface PortCovers {
+  cover: string | null;
+  hero: string | null;
+}
+
+/** One row of the covers cache, keyed by port id. */
+export interface PortCoversCacheEntry extends PortCovers {
+  checkedAt: string;
+}
+
 export interface InstalledPort {
   portId: string;
   version: string;
@@ -100,6 +111,8 @@ export interface InstalledPort {
 
 export type PortErrorCode =
   | "catalogue_unavailable"
+  | "no_covers_key"
+  | "invalid_covers_key"
   | "port_not_found"
   | "no_asset_for_platform"
   | "release_unavailable"
