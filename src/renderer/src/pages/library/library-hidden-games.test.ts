@@ -121,6 +121,7 @@ async function renderLibrary(
       onLibraryBatchComplete: () => noop,
       onClassicsImportStatus: () => noop,
       getClassicsImportStatus: async () => false,
+      getInstalledPorts: async () => [],
     },
   });
 
