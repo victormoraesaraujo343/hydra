@@ -20,6 +20,7 @@ import "./catalogue.scss";
 import { Button } from "@renderer/components/button/button";
 import { SelectField } from "@renderer/components/select-field/select-field";
 import { setFilters, setPage } from "@renderer/features";
+import type { CatalogueMode } from "@renderer/features";
 import { useCatalogue } from "@renderer/hooks/use-catalogue";
 import { useLaunchboxFilters } from "@renderer/hooks/use-launchbox-filters";
 import { debounce } from "lodash-es";
@@ -33,6 +34,7 @@ import { FilterSection } from "./filter-section";
 import { GameItem } from "./game-item";
 import { GameItemClassics } from "./game-item-classics";
 import { Pagination } from "./pagination";
+import { PortsCatalogue } from "@renderer/pages/ports/ports-catalogue";
 import {
   ClassicsOnboardingModal,
   hasDismissedClassicsOnboarding,
@@ -184,7 +186,7 @@ export default function Catalogue() {
         pageSize: number,
         offset: number,
         requestId: number,
-        mode: "modern" | "classics"
+        mode: CatalogueMode
       ) => {
         const { platforms, ...restFilters } = filters;
         const baseRequest = {
@@ -231,10 +233,12 @@ export default function Catalogue() {
     hasResultsRef.current = results.length > 0;
   }, [results.length]);
 
-  const isModeTransitioning = resultsMode !== mode;
-  const showSkeleton = isLoading || isModeTransitioning;
+  const isModeTransitioning = mode !== "ports" && resultsMode !== mode;
+  const showSkeleton = mode !== "ports" && (isLoading || isModeTransitioning);
 
   useEffect(() => {
+    if (mode === "ports") return;
+
     const requestId = ++requestSequenceRef.current;
 
     if (!hasResultsRef.current) {
@@ -636,42 +640,44 @@ export default function Catalogue() {
         onClose={() => setShowClassicsOnboarding(false)}
       />
       <div className="catalogue__header">
-        <div className="catalogue__header-row">
-          <div className="catalogue__header-summary">
-            <span className="catalogue__result-count">
-              {t("result_count", {
-                resultCount: formatNumber(itemsCount),
-              })}
-            </span>
-            {selectedFiltersCount === 0 && (
-              <span className="catalogue__filters-hint">
-                {t("filters_sidebar_hint")}
+        {mode !== "ports" && (
+          <div className="catalogue__header-row">
+            <div className="catalogue__header-summary">
+              <span className="catalogue__result-count">
+                {t("result_count", {
+                  resultCount: formatNumber(itemsCount),
+                })}
               </span>
-            )}
-          </div>
+              {selectedFiltersCount === 0 && (
+                <span className="catalogue__filters-hint">
+                  {t("filters_sidebar_hint")}
+                </span>
+              )}
+            </div>
 
-          <div className="catalogue__sort-inline">
-            <span className="catalogue__sort-label">{t("sort_by")}</span>
-            <SelectField
-              theme="dark"
-              className="catalogue__sort-select"
-              value={
-                sortValues.includes(selectedSortValue as CatalogueSortValue)
-                  ? selectedSortValue
-                  : "popularity:desc"
-              }
-              options={sortOptions}
-              onChange={(event) => {
-                const [sortBy, sortOrder] = event.target.value.split(":") as [
-                  CatalogueSearchPayload["sortBy"],
-                  CatalogueSearchPayload["sortOrder"],
-                ];
+            <div className="catalogue__sort-inline">
+              <span className="catalogue__sort-label">{t("sort_by")}</span>
+              <SelectField
+                theme="dark"
+                className="catalogue__sort-select"
+                value={
+                  sortValues.includes(selectedSortValue as CatalogueSortValue)
+                    ? selectedSortValue
+                    : "popularity:desc"
+                }
+                options={sortOptions}
+                onChange={(event) => {
+                  const [sortBy, sortOrder] = event.target.value.split(":") as [
+                    CatalogueSearchPayload["sortBy"],
+                    CatalogueSearchPayload["sortOrder"],
+                  ];
 
-                dispatch(setFilters({ sortBy, sortOrder }));
-              }}
-            />
+                  dispatch(setFilters({ sortBy, sortOrder }));
+                }}
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         {selectedFiltersCount > 0 && (
           <div className="catalogue__header-row catalogue__header-row--filters">
@@ -737,7 +743,9 @@ export default function Catalogue() {
             "catalogue__games-container--classics": mode === "classics",
           })}
         >
-          {showSkeleton ? (
+          {mode === "ports" ? (
+            <PortsCatalogue />
+          ) : showSkeleton ? (
             <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
               {Array.from({ length: PAGE_SIZE }).map((_, i) => (
                 <Skeleton
@@ -756,18 +764,20 @@ export default function Catalogue() {
             results.map((game) => <GameItem key={game.id} game={game} />)
           )}
 
-          <div className="catalogue__pagination-container">
-            <Pagination
-              page={page}
-              totalPages={Math.ceil(itemsCount / PAGE_SIZE)}
-              onPageChange={(page) => {
-                dispatch(setPage(page));
-                if (cataloguePageRef.current) {
-                  cataloguePageRef.current.scrollTop = 0;
-                }
-              }}
-            />
-          </div>
+          {mode !== "ports" && (
+            <div className="catalogue__pagination-container">
+              <Pagination
+                page={page}
+                totalPages={Math.ceil(itemsCount / PAGE_SIZE)}
+                onPageChange={(page) => {
+                  dispatch(setPage(page));
+                  if (cataloguePageRef.current) {
+                    cataloguePageRef.current.scrollTop = 0;
+                  }
+                }}
+              />
+            </div>
+          )}
         </div>
 
         <div className="catalogue__filters-container">

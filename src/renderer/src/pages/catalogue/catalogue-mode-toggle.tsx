@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import cn from "classnames";
-import { DeviceDesktopIcon } from "@primer/octicons-react";
+import { DeviceDesktopIcon, PackageIcon } from "@primer/octicons-react";
 
 import { useAppDispatch, useAppSelector } from "@renderer/hooks";
 import { setMode } from "@renderer/features";
@@ -38,6 +38,18 @@ export function CatalogueModeToggle() {
       >
         <ClassicsIcon size={16} />
         <span>{t("mode_classics")}</span>
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={mode === "ports"}
+        className={cn("catalogue-mode-toggle__option", {
+          "catalogue-mode-toggle__option--active": mode === "ports",
+        })}
+        onClick={() => dispatch(setMode("ports"))}
+      >
+        <PackageIcon size={14} />
+        <span>{t("mode_ports")}</span>
       </button>
     </div>
   );
