@@ -106,6 +106,13 @@ import type {
   EpicConnectionState,
   EpicOperationResult,
   EpicStartAuthResult,
+  PortsCatalogue,
+  InstalledPort,
+  PortRelease,
+  PortResult,
+  PortInstallProgress,
+  PortGameCheckResult,
+  PortCovers,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -693,6 +700,22 @@ declare global {
     ) => Promise<EmulatorInstallResult>;
     onEmulatorInstallProgress: (
       cb: (payload: EmulatorInstallProgress) => void
+    ) => () => void;
+    /* Ports */
+    getPortsCatalogue: (
+      forceRefresh?: boolean
+    ) => Promise<PortResult<PortsCatalogue>>;
+    getInstalledPorts: () => Promise<InstalledPort[]>;
+    getPortLatestRelease: (portId: string) => Promise<PortResult<PortRelease>>;
+    getPortCover: (portId: string) => Promise<PortResult<PortCovers>>;
+    installPort: (portId: string) => Promise<PortResult<InstalledPort>>;
+    uninstallPort: (portId: string) => Promise<PortResult<null>>;
+    checkPortGameFolder: (
+      portId: string,
+      targetPath: string
+    ) => Promise<PortResult<PortGameCheckResult>>;
+    onPortInstallProgress: (
+      cb: (payload: PortInstallProgress) => void
     ) => () => void;
     /* RetroArch */
     getRetroArchConfig: () => Promise<RetroArchConfig>;

@@ -1,4 +1,8 @@
-import { StackIcon, DeviceDesktopIcon } from "@primer/octicons-react";
+import {
+  StackIcon,
+  DeviceDesktopIcon,
+  PackageIcon,
+} from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import "./category-filter.scss";
 
@@ -76,6 +80,11 @@ export function CategoryFilter({
       value: "classics",
       label: t("category_classics"),
       icon: <ClassicsIcon size={16} />,
+    },
+    {
+      value: "ports",
+      label: t("category_ports"),
+      icon: <PackageIcon size={14} />,
     },
   ];
 

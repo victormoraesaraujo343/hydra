@@ -207,6 +207,28 @@ export default function Library() {
     () => localStorage.getItem(LIBRARY_INSTALLED_ONLY_STORAGE_KEY) === "true"
   );
   const [isImportingClassics, setIsImportingClassics] = useState(false);
+  const [installedPortGameIds, setInstalledPortGameIds] = useState<Set<string>>(
+    () => new Set()
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    window.electron
+      .getInstalledPorts()
+      .then((ports) => {
+        if (!cancelled) {
+          setInstalledPortGameIds(
+            new Set(ports.map((port) => port.gameObjectId))
+          );
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [library]);
 
   const effectiveCategory: LibraryCategory = category;
 
@@ -522,11 +544,18 @@ export default function Library() {
       }
     }
 
-    filtered = filterLibraryGames(filtered, {
-      category: effectiveCategory,
-      sources: hasSteamGames ? selectedSources : [],
-      platforms: hasPlatforms ? selectedPlatforms : [],
-    });
+    filtered = filterLibraryGames(
+      filtered.map((game) => ({
+        ...game,
+        isPort:
+          game.shop === "custom" && installedPortGameIds.has(game.objectId),
+      })),
+      {
+        category: effectiveCategory,
+        sources: hasSteamGames ? selectedSources : [],
+        platforms: hasPlatforms ? selectedPlatforms : [],
+      }
+    );
 
     if (showInstalledOnly) {
       filtered = filtered.filter(isGameInstalled);
@@ -565,6 +594,7 @@ export default function Library() {
     hasPlatforms,
     selectedPlatforms,
     showInstalledOnly,
+    installedPortGameIds,
   ]);
 
   useEffect(() => {

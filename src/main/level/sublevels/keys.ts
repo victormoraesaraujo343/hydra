@@ -24,6 +24,9 @@ export const levelKeys = {
   localNotifications: "localNotifications",
   commonRedistPassed: "commonRedistPassed", // Whether common redistributables preflight has passed
   emulators: "emulators",
+  ports: "ports",
+  portsCatalogueCache: "portsCatalogueCache",
+  portsCoversCache: "portsCoversCache",
   retroarch: "retroarch",
   retroArchSouvenirConfigBackups: "retroarch-souvenir-config-backups",
   duckStationSouvenirConfigBackups: "duckstation-souvenir-config-backups",

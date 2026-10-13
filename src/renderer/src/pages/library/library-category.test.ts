@@ -11,6 +11,7 @@ const {
   getLibraryFilterOptions,
   getProfileLibraryFilter,
   hasSteamLibraryGames,
+  isPortGame,
   isSteamLibraryGame,
   parseStoredLibrarySources,
   readStoredLibraryFilters,
@@ -240,6 +241,61 @@ describe("Library and console filters", () => {
   it("detects Steam imports", () => {
     assert.equal(hasSteamLibraryGames(games), true);
     assert.equal(hasSteamLibraryGames(games.slice(1)), false);
+  });
+});
+
+describe("Ports category", () => {
+  const portGames = [
+    { id: "port-installed", shop: "custom", isPort: true },
+    { id: "custom-local", shop: "custom" },
+    { id: "port-steam", shop: "steam", hasActiveSteamImport: true },
+    { id: "snes", shop: "launchbox", platform: "SNES" },
+  ];
+
+  it("detects port games", () => {
+    assert.equal(isPortGame(portGames[0]), true);
+    assert.equal(isPortGame(portGames[1]), false);
+    assert.equal(isPortGame({ shop: "custom", isPort: false }), false);
+  });
+
+  it("shows only port games on Ports", () => {
+    assert.deepEqual(ids(filterLibraryGamesByCategory(portGames, "ports")), [
+      "port-installed",
+    ]);
+  });
+
+  it("keeps ports out of PC and classics", () => {
+    assert.deepEqual(ids(filterLibraryGamesByCategory(portGames, "pc")), [
+      "custom-local",
+      "port-steam",
+    ]);
+    assert.deepEqual(ids(filterLibraryGamesByCategory(portGames, "classics")), [
+      "snes",
+    ]);
+  });
+
+  it("keeps ports in All", () => {
+    assert.equal(filterLibraryGamesByCategory(portGames, "all"), portGames);
+  });
+
+  it("hides source and platform filters on Ports", () => {
+    assert.deepEqual(
+      ids(
+        filterLibraryGames(portGames, {
+          category: "ports",
+          sources: ["steam"],
+          platforms: ["SNES"],
+        })
+      ),
+      ["port-installed"]
+    );
+  });
+
+  it("accepts the stored Ports category", () => {
+    assert.deepEqual(resolveStoredLibraryCategory("ports"), {
+      category: "ports",
+      sources: null,
+    });
   });
 });
 

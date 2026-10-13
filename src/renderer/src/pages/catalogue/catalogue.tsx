@@ -20,6 +20,7 @@ import "./catalogue.scss";
 import { Button } from "@renderer/components/button/button";
 import { SelectField } from "@renderer/components/select-field/select-field";
 import { setFilters, setPage } from "@renderer/features";
+import type { CatalogueMode } from "@renderer/features";
 import { useCatalogue } from "@renderer/hooks/use-catalogue";
 import { useLaunchboxFilters } from "@renderer/hooks/use-launchbox-filters";
 import { debounce } from "lodash-es";
@@ -33,6 +34,7 @@ import { FilterSection } from "./filter-section";
 import { GameItem } from "./game-item";
 import { GameItemClassics } from "./game-item-classics";
 import { Pagination } from "./pagination";
+import { PortsCatalogue } from "@renderer/pages/ports/ports-catalogue";
 import {
   ClassicsOnboardingModal,
   hasDismissedClassicsOnboarding,
@@ -184,7 +186,7 @@ export default function Catalogue() {
         pageSize: number,
         offset: number,
         requestId: number,
-        mode: "modern" | "classics"
+        mode: CatalogueMode
       ) => {
         const { platforms, ...restFilters } = filters;
         const baseRequest = {
@@ -235,6 +237,8 @@ export default function Catalogue() {
   const showSkeleton = isLoading || isModeTransitioning;
 
   useEffect(() => {
+    if (mode === "ports") return;
+
     const requestId = ++requestSequenceRef.current;
 
     if (!hasResultsRef.current) {
@@ -628,6 +632,8 @@ export default function Catalogue() {
     "playable",
     "verified",
   ]);
+
+  if (mode === "ports") return <PortsCatalogue />;
 
   return (
     <div className="catalogue" ref={cataloguePageRef}>

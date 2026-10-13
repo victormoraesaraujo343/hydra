@@ -29,6 +29,7 @@ import "./user";
 import "./user-preferences";
 import "./library/transfer-game-files";
 import "./emulators";
+import "./ports";
 import "./retroarch";
 import "./epic";
 

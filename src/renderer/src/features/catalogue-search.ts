@@ -3,7 +3,7 @@ import type { PayloadAction } from "@reduxjs/toolkit";
 
 import type { CatalogueSearchPayload } from "@types";
 
-export type CatalogueMode = "modern" | "classics";
+export type CatalogueMode = "modern" | "classics" | "ports";
 
 export interface CatalogueSearchState {
   filters: CatalogueSearchPayload;

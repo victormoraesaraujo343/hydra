@@ -78,6 +78,7 @@ import type {
   EpicConnectionState,
   EpicOperationResult,
   EpicStartAuthResult,
+  PortInstallProgress,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -583,6 +584,25 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-emulator-install-progress", listener);
     return () =>
       ipcRenderer.removeListener("on-emulator-install-progress", listener);
+  },
+  /* Ports */
+  getPortsCatalogue: (forceRefresh?: boolean) =>
+    ipcRenderer.invoke("getPortsCatalogue", forceRefresh),
+  getInstalledPorts: () => ipcRenderer.invoke("getInstalledPorts"),
+  getPortLatestRelease: (portId: string) =>
+    ipcRenderer.invoke("getPortLatestRelease", portId),
+  getPortCover: (portId: string) => ipcRenderer.invoke("getPortCover", portId),
+  installPort: (portId: string) => ipcRenderer.invoke("installPort", portId),
+  uninstallPort: (portId: string) =>
+    ipcRenderer.invoke("uninstallPort", portId),
+  checkPortGameFolder: (portId: string, targetPath: string) =>
+    ipcRenderer.invoke("checkPortGameFolder", portId, targetPath),
+  onPortInstallProgress: (cb: (payload: PortInstallProgress) => void) => {
+    const listener = (_event: unknown, payload: PortInstallProgress) =>
+      cb(payload);
+    ipcRenderer.on("on-port-install-progress", listener);
+    return () =>
+      ipcRenderer.removeListener("on-port-install-progress", listener);
   },
   /* RetroArch */
   getRetroArchConfig: () => ipcRenderer.invoke("getRetroArchConfig"),
