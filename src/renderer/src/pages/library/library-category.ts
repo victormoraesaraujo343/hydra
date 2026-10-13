@@ -1,4 +1,4 @@
-export type LibraryCategory = "all" | "pc" | "classics";
+export type LibraryCategory = "all" | "pc" | "classics" | "ports";
 
 export type LibrarySource = "hydra" | "steam";
 
@@ -6,6 +6,7 @@ export const LIBRARY_CATEGORIES: readonly LibraryCategory[] = [
   "all",
   "pc",
   "classics",
+  "ports",
 ];
 
 export const LIBRARY_SOURCES: readonly LibrarySource[] = ["hydra", "steam"];
@@ -15,6 +16,7 @@ export const LEGACY_STEAM_LIBRARY_CATEGORY = "steam_library";
 export interface LibraryCategoryGame {
   shop: string;
   hasActiveSteamImport?: boolean;
+  isPort?: boolean;
 }
 
 export interface LibraryFilterGame extends LibraryCategoryGame {
@@ -90,6 +92,8 @@ export const isSteamLibraryGame = (game: LibraryCategoryGame) =>
 export const isClassicsGame = (game: LibraryCategoryGame) =>
   game.shop === "launchbox";
 
+export const isPortGame = (game: LibraryCategoryGame) => game.isPort === true;
+
 export const getLibraryGameSource = (
   game: LibraryCategoryGame
 ): LibrarySource => (isSteamLibraryGame(game) ? "steam" : "hydra");
@@ -124,11 +128,15 @@ export const filterLibraryGamesByCategory = <T extends LibraryCategoryGame>(
   category: LibraryCategory
 ): T[] => {
   if (category === "pc") {
-    return games.filter((game) => !isClassicsGame(game));
+    return games.filter((game) => !isClassicsGame(game) && !isPortGame(game));
   }
 
   if (category === "classics") {
     return games.filter(isClassicsGame);
+  }
+
+  if (category === "ports") {
+    return games.filter(isPortGame);
   }
 
   return games;

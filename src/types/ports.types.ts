@@ -10,6 +10,18 @@ export type PortPlatform =
   | "gamecube"
   | "wii"
   | "switch"
+  | "nes"
+  | "snes"
+  | "gb"
+  | "gbc"
+  | "gba"
+  | "ds"
+  | "3ds"
+  | "wiiu"
+  | "genesis"
+  | "saturn"
+  | "dreamcast"
+  | "arcade"
   | "other";
 
 export type PortStatus = "playable" | "partial" | "experimental";
@@ -24,8 +36,11 @@ export type LocalizedList = { en: string[] } & Record<string, string[]>;
 export interface PortAsset {
   /** RegExp source matched against the release asset name (case-insensitive). */
   pattern: string;
-  /** Path relative to the extracted folder (or the bare asset file name). */
-  executable: string;
+  /**
+   * Path relative to the extracted folder (or the bare asset file name).
+   * null means the installer detects the executable from the extracted files.
+   */
+  executable: string | null;
 }
 
 export interface PortGameRequirement {
@@ -47,6 +62,8 @@ export interface PortCatalogueEntry {
   status: PortStatus;
   tested: boolean;
   channel: PortChannel;
+  /** "auto" entries are imported from an external list; missing means "curated". */
+  source: "curated" | "auto";
   assets: Partial<Record<PortOs, PortAsset>>;
   game: PortGameRequirement;
   requirements: LocalizedList | null;

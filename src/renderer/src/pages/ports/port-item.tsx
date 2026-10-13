@@ -1,4 +1,5 @@
 import { QuestionIcon, StarFillIcon } from "@primer/octicons-react";
+import { memo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Badge } from "@renderer/components/badge/badge";
@@ -26,7 +27,10 @@ export interface PortItemProps {
   installed?: InstalledPort;
 }
 
-export function PortItem({ port, installed }: Readonly<PortItemProps>) {
+export const PortItem = memo(function PortItem({
+  port,
+  installed,
+}: Readonly<PortItemProps>) {
   const { t } = useTranslation("ports");
 
   return (
@@ -41,12 +45,14 @@ export function PortItem({ port, installed }: Readonly<PortItemProps>) {
                 alt=""
                 aria-hidden="true"
                 loading="lazy"
+                decoding="async"
               />
               <img
                 className="port-item__cover-image"
                 src={port.coverImageUrl}
                 alt={port.title}
                 loading="lazy"
+                decoding="async"
               />
             </>
           ) : (
@@ -85,4 +91,4 @@ export function PortItem({ port, installed }: Readonly<PortItemProps>) {
       </Link>
     </article>
   );
-}
+});

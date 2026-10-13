@@ -39,6 +39,7 @@ const port = (
   status: "playable",
   tested: true,
   channel: "latest",
+  source: "curated",
   assets: {
     win32: {
       pattern: "win64\\.zip$",
@@ -73,6 +74,7 @@ interface FakeOptions {
   downloadError?: Error;
   extractError?: Error;
   previous?: InstalledPort;
+  walkError?: Error;
 }
 
 const createFake = (options: FakeOptions = {}) => {
@@ -146,6 +148,18 @@ const createFake = (options: FakeOptions = {}) => {
         })),
     makeExecutable: async (target) => {
       calls.push(`makeExecutable:${target}`);
+    },
+    walk: async (root) => {
+      calls.push(`walk:${root}`);
+      if (options.walkError) throw options.walkError;
+      return [...nodes.entries()]
+        .filter(([key]) => key.startsWith(`${root}/`))
+        .map(([key, isDirectory]) => ({
+          relativePath: key.slice(root.length + 1),
+          size: isDirectory ? 0 : 1024,
+          isExecutable: true,
+          isDirectory,
+        }));
     },
     mkdir: async (dir) => {
       calls.push(`mkdir:${dir}`);
@@ -393,6 +407,131 @@ describe("installPortCore", () => {
     assert.deepEqual(fake.under(TEMP), []);
     assert.equal(fake.exists(STAGING_V1), false);
     assert.equal(fake.exists(INSTALL_V1), false);
+  });
+
+  it("detects the executable when the asset has no executable path", async () => {
+    const fake = createFake({
+      extractEntries: [
+        "PortA-1.0.0-win64/porta.exe",
+        "PortA-1.0.0-win64/unins000.exe",
+      ],
+    });
+
+    const result = await installPortCore(
+      port({
+        assets: {
+          win32: { pattern: "win64\\.zip$", executable: null },
+        },
+      }),
+      fake.deps
+    );
+
+    assert.equal(result.ok, true);
+    assert.equal(
+      result.ok && result.data.executablePath,
+      `${INSTALL_V1}/PortA-1.0.0-win64/porta.exe`
+    );
+    assert.ok(fake.calls.includes(`walk:${STAGING_V1}`));
+    assert.deepEqual(fake.under(TEMP), []);
+    assert.equal(fake.exists(STAGING_V1), false);
+  });
+
+  it("reports executable_not_found when detection finds only installers", async () => {
+    const fake = createFake({
+      extractEntries: [
+        "PortA-1.0.0-win64/unins000.exe",
+        "PortA-1.0.0-win64/vc_redist.x64.exe",
+      ],
+    });
+
+    const result = await installPortCore(
+      port({
+        assets: {
+          win32: { pattern: "win64\\.zip$", executable: null },
+        },
+      }),
+      fake.deps
+    );
+
+    assert.deepEqual(result, { ok: false, error: "executable_not_found" });
+    assert.equal(
+      fake.calls.some((call) => call.startsWith("upsert:")),
+      false
+    );
+    assert.equal(fake.exists(STAGING_V1), false);
+    assert.equal(fake.exists(INSTALL_V1), false);
+    assert.deepEqual(fake.under(TEMP), []);
+  });
+
+  it("detects a Linux AppImage when the asset has no executable path", async () => {
+    const fake = createFake({ platform: "linux", extractEntries: [] });
+
+    const result = await installPortCore(
+      port({
+        assets: {
+          linux: { pattern: "AppImage$", executable: null },
+        },
+      }),
+      {
+        ...fake.deps,
+        resolveRelease: async () => ({
+          ok: true,
+          data: release({ fileName: "PortA-x86_64.AppImage" }),
+        }),
+      }
+    );
+
+    assert.equal(result.ok, true);
+    assert.equal(
+      result.ok && result.data.executablePath,
+      `${INSTALL_V1}/PortA-x86_64.AppImage`
+    );
+    assert.ok(
+      fake.calls.includes(`makeExecutable:${STAGING_V1}/PortA-x86_64.AppImage`)
+    );
+  });
+
+  it("uses the win32 build on Linux and leaves .exe files alone when detecting", async () => {
+    const fake = createFake({
+      platform: "linux",
+      extractEntries: ["PortA-1.0.0-win64/porta.exe"],
+    });
+
+    const result = await installPortCore(
+      port({
+        assets: {
+          win32: { pattern: "win64\\.zip$", executable: null },
+        },
+      }),
+      fake.deps
+    );
+
+    assert.equal(result.ok, true);
+    assert.equal(
+      result.ok && result.data.executablePath,
+      `${INSTALL_V1}/PortA-1.0.0-win64/porta.exe`
+    );
+    assert.equal(
+      fake.calls.some((call) => call.startsWith("makeExecutable:")),
+      false
+    );
+  });
+
+  it("maps a failed folder listing to extract_failed and cleans up", async () => {
+    const fake = createFake({ walkError: new Error("EACCES") });
+
+    const result = await installPortCore(
+      port({
+        assets: {
+          win32: { pattern: "win64\\.zip$", executable: null },
+        },
+      }),
+      fake.deps
+    );
+
+    assert.deepEqual(result, { ok: false, error: "extract_failed" });
+    assert.equal(fake.exists(STAGING_V1), false);
+    assert.deepEqual(fake.under(TEMP), []);
   });
 
   it("keeps the library game and removes the old version only after the new one is saved", async () => {

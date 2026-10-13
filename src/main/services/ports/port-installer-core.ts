@@ -2,13 +2,19 @@ import path from "node:path";
 
 import type {
   InstalledPort,
+  PortAsset,
   PortCatalogueEntry,
   PortErrorCode,
   PortInstallProgress,
+  PortOs,
   PortRelease,
   PortResult,
 } from "../../../types/ports.types.js";
-import { parseSha256File, pickPortAsset } from "./port-release-parse.js";
+import {
+  detectPortExecutable,
+  type PortFileEntry,
+} from "./port-executable-detect.js";
+import { parseSha256File } from "./port-release-parse.js";
 
 export interface PortInstallerDeps {
   resolveRelease: (
@@ -26,6 +32,8 @@ export interface PortInstallerDeps {
   pathExists: (p: string) => Promise<boolean>;
   listDir: (p: string) => Promise<{ name: string; isDirectory: boolean }[]>;
   makeExecutable: (p: string) => Promise<void>;
+  /** Lists a folder recursively (relative "/" paths, bounded depth and count). */
+  walk: (root: string) => Promise<PortFileEntry[]>;
   mkdir: (p: string) => Promise<void>;
   move: (from: string, to: string) => Promise<void>;
   remove: (p: string) => Promise<void>;
@@ -115,6 +123,23 @@ const findExecutable = async (
   return (await deps.pathExists(path.join(root, nested))) ? nested : null;
 };
 
+/**
+ * The asset key the release is built for: the exact OS, else win32 on Linux
+ * (same fallback as pickPortAsset in port-release-parse.ts).
+ */
+const pickAssetOs = (
+  assets: Partial<Record<PortOs, PortAsset>>,
+  platform: NodeJS.Platform
+): PortOs | null => {
+  if (
+    (platform === "win32" || platform === "linux" || platform === "darwin") &&
+    assets[platform]
+  ) {
+    return platform;
+  }
+  return platform === "linux" && assets.win32 ? "win32" : null;
+};
+
 const resolveExpectedSha256 = async (
   release: PortRelease,
   deps: PortInstallerDeps
@@ -144,8 +169,11 @@ const runInstall = async (
   if (!resolved.ok) throw new PortInstallFailure(resolved.error);
   const release = resolved.data;
 
-  const asset = pickPortAsset(port.assets, deps.platform);
-  if (!asset) throw new PortInstallFailure("no_asset_for_platform");
+  const assetOs = pickAssetOs(port.assets, deps.platform);
+  const asset: PortAsset | null = assetOs
+    ? (port.assets[assetOs] ?? null)
+    : null;
+  if (!assetOs || !asset) throw new PortInstallFailure("no_asset_for_platform");
 
   const fileName = path.basename(release.fileName);
   if (!fileName || fileName === "." || fileName === "..") {
@@ -194,14 +222,24 @@ const runInstall = async (
     );
   }
 
-  const relativeExe = await step("extract_failed", () =>
-    findExecutable(deps, staging, asset.executable)
+  const relativeExe = await step("extract_failed", async () =>
+    asset.executable !== null
+      ? findExecutable(deps, staging, asset.executable)
+      : detectPortExecutable(
+          await deps.walk(staging),
+          deps.platform,
+          assetOs,
+          port.title
+        )
   );
   if (!relativeExe) throw new PortInstallFailure("executable_not_found");
 
+  // App bundles are launched as a whole, never by file mode.
+  const lowerExe = relativeExe.toLowerCase();
   if (
     deps.platform !== "win32" &&
-    !relativeExe.toLowerCase().endsWith(".exe")
+    !lowerExe.endsWith(".exe") &&
+    !lowerExe.endsWith(".app")
   ) {
     await step("extract_failed", () =>
       deps.makeExecutable(path.join(staging, relativeExe))

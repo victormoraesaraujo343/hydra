@@ -40,12 +40,25 @@ const PLATFORMS: readonly PortPlatform[] = [
   "gamecube",
   "wii",
   "switch",
+  "nes",
+  "snes",
+  "gb",
+  "gbc",
+  "gba",
+  "ds",
+  "3ds",
+  "wiiu",
+  "genesis",
+  "saturn",
+  "dreamcast",
+  "arcade",
   "other",
 ];
 const STATUSES: readonly PortStatus[] = ["playable", "partial", "experimental"];
 const CHANNELS: readonly PortChannel[] = ["latest", "prerelease"];
 const FORMATS: readonly PortGameFormat[] = ["folder", "iso", "folder-or-iso"];
 const OSES: readonly PortOs[] = ["win32", "linux", "darwin"];
+const SOURCE_AUTO = "auto";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -102,6 +115,11 @@ const parseAsset = (value: unknown): PortAsset | null => {
   const { pattern, executable } = value;
   if (typeof pattern !== "string" || pattern.length === 0) return null;
   if (!compilesAsRegExp(pattern)) return null;
+
+  // A missing or null executable means "detect it after extraction".
+  if (executable === undefined || executable === null) {
+    return { pattern, executable: null };
+  }
   if (typeof executable !== "string" || !isSafeExecutable(executable)) {
     return null;
   }
@@ -182,6 +200,7 @@ const parseEntry = (raw: unknown): EntryParse => {
       status: isOneOf(STATUSES, raw.status) ? raw.status : "experimental",
       tested: typeof raw.tested === "boolean" ? raw.tested : false,
       channel: isOneOf(CHANNELS, raw.channel) ? raw.channel : "latest",
+      source: raw.source === SOURCE_AUTO ? "auto" : "curated",
       assets,
       game,
       requirements: parseLocalizedList(raw.requirements),

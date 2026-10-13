@@ -21,8 +21,11 @@ import { fetchPortRelease } from "./port-release";
 import { findPort } from "./ports-catalogue";
 import { removePortLibraryGame, upsertPortLibraryGame } from "./ports-library";
 import { installPortCore, type PortInstallerDeps } from "./port-installer-core";
+import type { PortFileEntry } from "./port-executable-detect";
 
 const TEXT_FETCH_TIMEOUT_MS = 15_000;
+const WALK_MAX_DEPTH = 4;
+const WALK_MAX_ENTRIES = 5000;
 const TAR_COMPRESSED_PATTERN = /\.(tar\.gz|tgz|tar\.xz)$/i;
 const ARCHIVE_PATTERN = /\.(zip|7z|rar|tar|tar\.gz|tgz|tar\.xz)$/i;
 
@@ -44,6 +47,48 @@ const pathExists = async (target: string): Promise<boolean> => {
   } catch {
     return false;
   }
+};
+
+/**
+ * Lists an extracted folder for executable detection. Stops at WALK_MAX_DEPTH
+ * path segments and WALK_MAX_ENTRIES entries; symlinked folders are not entered.
+ */
+const walkFolder = async (root: string): Promise<PortFileEntry[]> => {
+  const entries: PortFileEntry[] = [];
+
+  const visit = async (dir: string, relativeDir: string, depth: number) => {
+    const dirents = await fs.promises.readdir(dir, { withFileTypes: true });
+    for (const dirent of dirents) {
+      if (entries.length >= WALK_MAX_ENTRIES) return;
+
+      const absolute = path.join(dir, dirent.name);
+      const relativePath = relativeDir
+        ? `${relativeDir}/${dirent.name}`
+        : dirent.name;
+      const isDirectory = dirent.isDirectory();
+      const info = await fs.promises.stat(absolute).catch(() => null);
+      if (info) {
+        // Windows has no execute bit; there an .exe is the runnable file.
+        const isExecutable =
+          process.platform === "win32"
+            ? dirent.name.toLowerCase().endsWith(".exe")
+            : (info.mode & 0o111) !== 0;
+        entries.push({
+          relativePath,
+          size: info.size,
+          isExecutable,
+          isDirectory,
+        });
+      }
+
+      if (isDirectory && depth + 1 < WALK_MAX_DEPTH) {
+        await visit(absolute, relativePath, depth + 1);
+      }
+    }
+  };
+
+  await visit(root, "", 0);
+  return entries;
 };
 
 const sha256OfFile = (filePath: string): Promise<string> =>
@@ -123,6 +168,7 @@ const buildDeps = (): PortInstallerDeps => ({
       name: entry.name,
       isDirectory: entry.isDirectory(),
     })),
+  walk: walkFolder,
   makeExecutable: async (target) => {
     // An archive may ship the executable as a symlink; never chmod anything
     // that resolves outside the ports folder.

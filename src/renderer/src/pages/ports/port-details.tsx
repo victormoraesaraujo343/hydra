@@ -24,6 +24,8 @@ import "./port-details.scss";
 
 type CheckFormat = "folder" | "iso";
 
+const AUTO_SOURCE_URL = "https://github.com/SubmitGame/awesome-decomp-games";
+
 /** Picks the text for the current language, then its base language, then "en". */
 const pickText = (text: LocalizedText, language: string): string =>
   text[language] ?? text[language.split("-")[0]] ?? text.en;
@@ -351,6 +353,19 @@ export default function PortDetails() {
                 </span>
               )}
             </div>
+
+            {port.source === "auto" && (
+              <p className="port-details__source-note">
+                {t("source_auto_note")}{" "}
+                <button
+                  type="button"
+                  className="port-details__source-link"
+                  onClick={() => window.electron.openExternal(AUTO_SOURCE_URL)}
+                >
+                  awesome-decomp-games
+                </button>
+              </p>
+            )}
           </div>
         </header>
       </section>

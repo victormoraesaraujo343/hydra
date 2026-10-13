@@ -47,6 +47,7 @@ describe("validatePortsCatalogue", () => {
         status: "playable",
         tested: true,
         channel: "latest",
+        source: "curated",
         assets: {
           win32: {
             pattern: "^gow3-windows\\.zip$",
@@ -116,11 +117,110 @@ describe("validatePortsCatalogue", () => {
 
   it("maps an unknown platform to other", () => {
     const { ports, skipped } = validatePortsCatalogue({
-      ports: [{ ...valid, platform: "dreamcast" }],
+      ports: [{ ...valid, platform: "amiga" }],
     });
 
     assert.deepEqual(skipped, []);
     assert.equal(ports[0].platform, "other");
+  });
+
+  it("accepts the retro platforms added for auto imports", () => {
+    const platforms = [
+      "nes",
+      "snes",
+      "gb",
+      "gbc",
+      "gba",
+      "ds",
+      "3ds",
+      "wiiu",
+      "genesis",
+      "saturn",
+      "dreamcast",
+      "arcade",
+    ];
+    const { ports, skipped } = validatePortsCatalogue({
+      ports: platforms.map((platform, index) => ({
+        ...valid,
+        id: `retro-${index}`,
+        platform,
+      })),
+    });
+
+    assert.deepEqual(skipped, []);
+    assert.deepEqual(
+      ports.map((port) => port.platform),
+      platforms
+    );
+  });
+
+  it("keeps an asset with a null executable as null", () => {
+    const { ports, skipped } = validatePortsCatalogue({
+      ports: [
+        {
+          ...valid,
+          assets: {
+            win32: { pattern: "^gow3-windows\\.zip$", executable: null },
+          },
+        },
+      ],
+    });
+
+    assert.deepEqual(skipped, []);
+    assert.deepEqual(ports[0].assets, {
+      win32: { pattern: "^gow3-windows\\.zip$", executable: null },
+    });
+  });
+
+  it("treats a missing executable as null", () => {
+    const { ports, skipped } = validatePortsCatalogue({
+      ports: [
+        {
+          ...valid,
+          assets: { linux: { pattern: "AppImage$" } },
+        },
+      ],
+    });
+
+    assert.deepEqual(skipped, []);
+    assert.deepEqual(ports[0].assets, {
+      linux: { pattern: "AppImage$", executable: null },
+    });
+  });
+
+  it("still rejects a non-string executable that is not null", () => {
+    const { ports, skipped } = validatePortsCatalogue({
+      ports: [
+        {
+          ...valid,
+          assets: { win32: { pattern: "^gow3\\.zip$", executable: 42 } },
+        },
+      ],
+    });
+
+    assert.deepEqual(ports, []);
+    assert.deepEqual(skipped, [{ index: 0, reason: "no_assets" }]);
+  });
+
+  it("marks an entry as auto only when source is exactly auto", () => {
+    const { ports } = validatePortsCatalogue({
+      ports: [
+        { ...valid, id: "auto-one", source: "auto" },
+        { ...valid, id: "curated-missing" },
+        { ...valid, id: "curated-explicit", source: "curated" },
+        { ...valid, id: "other-value", source: "AUTO" },
+      ],
+    });
+
+    assert.deepEqual(
+      ports.map((port) => [port.id, port.source]),
+      [
+        ["auto-one", "auto"],
+        ["curated-missing", "curated"],
+        ["curated-explicit", "curated"],
+        ["other-value", "curated"],
+      ]
+    );
   });
 
   it("drops an executable that escapes the install folder", () => {
