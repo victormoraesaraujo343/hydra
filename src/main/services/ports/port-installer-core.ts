@@ -1,4 +1,5 @@
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 
 import type {
   InstalledPort,
@@ -46,6 +47,13 @@ export interface PortInstallerDeps {
   ) => Promise<string>;
   getInstalled: (portId: string) => Promise<InstalledPort | null>;
   saveInstalled: (record: InstalledPort) => Promise<void>;
+  preserveUserData: (
+    port: PortCatalogueEntry,
+    previous: InstalledPort,
+    staging: string,
+    relativeExecutable: string
+  ) => Promise<void>;
+  removeLibraryGame: (objectId: string) => Promise<void>;
   platform: NodeJS.Platform;
   now: () => Date;
   onProgress: (p: PortInstallProgress) => void;
@@ -60,6 +68,10 @@ interface InstallState {
   tempDir: string | null;
   staging: string | null;
   finalDir: string | null;
+  previous: InstalledPort | null;
+  backup: string | null;
+  libraryAttempted: boolean;
+  gameObjectId: string | null;
 }
 
 /** Carries a PortErrorCode out of the install steps. */
@@ -87,6 +99,18 @@ const step = async <T>(
 
 const removeQuietly = (deps: PortInstallerDeps, target: string) =>
   deps.remove(target).catch(() => undefined);
+
+const sameInstallPath = (
+  first: string,
+  second: string,
+  platform: NodeJS.Platform
+): boolean => {
+  const normalize = (value: string) =>
+    platform === "win32"
+      ? path.resolve(value).toLowerCase()
+      : path.resolve(value);
+  return normalize(first) === normalize(second);
+};
 
 /** Makes a release tag safe as one folder name (never "", "." or ".."). */
 const sanitizeSegment = (value: string): string => {
@@ -248,20 +272,33 @@ const runInstall = async (
 
   emit("finalizing");
   const finalDir = path.join(portDir, folderName);
-  await step("extract_failed", async () => {
-    await deps.remove(finalDir);
-    await deps.move(staging, finalDir);
-  });
-  state.staging = null;
-  state.finalDir = finalDir;
-
-  const finalExe = path.join(finalDir, relativeExe);
   const previous = await step("extract_failed", () =>
     deps.getInstalled(port.id)
   );
+  state.previous = previous;
+  if (previous) {
+    await step("extract_failed", () =>
+      deps.preserveUserData(port, previous, staging, relativeExe)
+    );
+  }
+  // Keep an existing target recoverable, including same-release reinstalls.
+  if (await deps.pathExists(finalDir)) {
+    const backup = path.join(portDir, `.previous-${randomUUID()}`);
+    await step("extract_failed", () => deps.move(finalDir, backup));
+    state.backup = backup;
+  }
+  state.finalDir = finalDir;
+  await step("extract_failed", async () => {
+    await deps.move(staging, finalDir);
+  });
+  state.staging = null;
+
+  const finalExe = path.join(finalDir, relativeExe);
+  state.libraryAttempted = true;
   const gameObjectId = await step("extract_failed", () =>
     deps.upsertLibraryGame(port, finalExe, previous?.gameObjectId ?? null)
   );
+  state.gameObjectId = gameObjectId;
 
   const record: InstalledPort = {
     portId: port.id,
@@ -273,9 +310,13 @@ const runInstall = async (
   };
   await step("extract_failed", () => deps.saveInstalled(record));
 
-  if (previous && previous.installPath !== finalDir) {
+  if (
+    previous &&
+    !sameInstallPath(previous.installPath, finalDir, deps.platform)
+  ) {
     await removeQuietly(deps, previous.installPath);
   }
+  if (state.backup) await removeQuietly(deps, state.backup);
 
   return record;
 };
@@ -284,8 +325,8 @@ const runInstall = async (
  * Installs one port: resolve the release, download, verify, extract into a
  * staging folder, move it into place, then register the library game and the
  * install record. The previous version is removed only after the new one is
- * saved. Temp files are always removed; a failed install also removes its
- * staging and new version folders.
+ * saved. Failed updates restore the previous installation where possible;
+ * files are retained if metadata rollback fails.
  */
 export const installPortCore = async (
   port: PortCatalogueEntry,
@@ -294,7 +335,15 @@ export const installPortCore = async (
   const emit: Emit = (phase, fields = {}) =>
     deps.onProgress({ portId: port.id, phase, ...fields });
 
-  const state: InstallState = { tempDir: null, staging: null, finalDir: null };
+  const state: InstallState = {
+    tempDir: null,
+    staging: null,
+    finalDir: null,
+    previous: null,
+    backup: null,
+    libraryAttempted: false,
+    gameObjectId: null,
+  };
   let outcome: PortResult<InstalledPort>;
 
   try {
@@ -305,7 +354,35 @@ export const installPortCore = async (
       error instanceof PortInstallFailure ? error.code : "extract_failed";
 
     if (state.staging) await removeQuietly(deps, state.staging);
-    if (state.finalDir) await removeQuietly(deps, state.finalDir);
+    let restored = true;
+    if (state.backup && state.finalDir) {
+      try {
+        await deps.remove(state.finalDir);
+        await deps.move(state.backup, state.finalDir);
+      } catch {
+        restored = false;
+      }
+    }
+    if (state.libraryAttempted) {
+      try {
+        if (state.previous) {
+          await deps.upsertLibraryGame(
+            port,
+            state.previous.executablePath,
+            state.previous.gameObjectId
+          );
+          await deps.saveInstalled(state.previous);
+        } else if (state.gameObjectId) {
+          await deps.removeLibraryGame(state.gameObjectId);
+        }
+      } catch {
+        restored = false;
+      }
+    }
+    // If metadata rollback fails, retain files at both possible launch paths.
+    if (restored && state.finalDir && !state.backup) {
+      await removeQuietly(deps, state.finalDir);
+    }
 
     outcome = { ok: false, error: code };
   } finally {

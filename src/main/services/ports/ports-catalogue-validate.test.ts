@@ -27,6 +27,49 @@ const valid = {
 };
 
 describe("validatePortsCatalogue", () => {
+  it("keeps explicit user data preservation paths", () => {
+    const { ports } = validatePortsCatalogue({
+      ports: [
+        {
+          ...valid,
+          assets: {
+            win32: {
+              ...valid.assets.win32,
+              preservePaths: ["user", "bbport.ini"],
+            },
+          },
+        },
+      ],
+    });
+    assert.deepEqual(ports[0].assets.win32?.preservePaths, [
+      "user",
+      "bbport.ini",
+    ]);
+  });
+
+  it("rejects malformed or escaping preservation paths", () => {
+    for (const preservePaths of [
+      null,
+      "user",
+      ["../save"],
+      ["C:\\save"],
+      ["/save"],
+      ["user//save"],
+      [1],
+      new Array(33).fill("user"),
+    ]) {
+      const { ports } = validatePortsCatalogue({
+        ports: [
+          {
+            ...valid,
+            assets: { win32: { ...valid.assets.win32, preservePaths } },
+          },
+        ],
+      });
+      assert.equal(ports.length, 0);
+    }
+  });
+
   it("keeps a valid entry and fills defaults", () => {
     const { ports, skipped } = validatePortsCatalogue({
       version: 1,

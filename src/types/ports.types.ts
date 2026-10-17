@@ -34,6 +34,8 @@ export type LocalizedText = { en: string } & Record<string, string>;
 export type LocalizedList = { en: string[] } & Record<string, string[]>;
 
 export interface PortAsset {
+  /** User data paths relative to the executable directory, preserved on update. */
+  preservePaths?: string[];
   /** RegExp source matched against the release asset name (case-insensitive). */
   pattern: string;
   /**
