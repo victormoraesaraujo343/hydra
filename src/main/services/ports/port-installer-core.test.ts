@@ -108,6 +108,8 @@ const createFake = (options: FakeOptions = {}) => {
   }
 
   const deps: PortInstallerDeps = {
+    preserveUserData: async () => {},
+    removeLibraryGame: async () => {},
     resolveRelease: async () => {
       calls.push("resolveRelease");
       return options.resolved ?? { ok: true, data: release() };

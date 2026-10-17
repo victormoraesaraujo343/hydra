@@ -22,6 +22,7 @@ import { findPort } from "./ports-catalogue";
 import { removePortLibraryGame, upsertPortLibraryGame } from "./ports-library";
 import { installPortCore, type PortInstallerDeps } from "./port-installer-core";
 import type { PortFileEntry } from "./port-executable-detect";
+import { preservePortUserData } from "./port-user-data";
 
 const TEXT_FETCH_TIMEOUT_MS = 15_000;
 const WALK_MAX_DEPTH = 4;
@@ -232,6 +233,15 @@ const buildDeps = (): PortInstallerDeps => ({
   saveInstalled: async (record) => {
     await portsSublevel.put(record.portId, record);
   },
+  preserveUserData: (port, previous, staging, relativeExe) =>
+    preservePortUserData(
+      port,
+      previous,
+      staging,
+      relativeExe,
+      process.platform
+    ),
+  removeLibraryGame: removePortLibraryGame,
   platform: process.platform,
   now: () => new Date(),
   onProgress: sendProgress,

@@ -10,6 +10,7 @@ import type {
   PortPlatform,
   PortStatus,
 } from "../../../types/ports.types.js";
+import { isSafePreservationPath } from "./port-user-data.js";
 
 export interface PortsCatalogueSkip {
   index: number;
@@ -113,17 +114,32 @@ const compilesAsRegExp = (pattern: string): boolean => {
 const parseAsset = (value: unknown): PortAsset | null => {
   if (!isRecord(value)) return null;
   const { pattern, executable } = value;
+  const preservePaths = value.preservePaths;
+  if (
+    preservePaths !== undefined &&
+    (!Array.isArray(preservePaths) ||
+      preservePaths.length > 32 ||
+      !preservePaths.every(
+        (entry: unknown) =>
+          typeof entry === "string" && isSafePreservationPath(entry)
+      ))
+  )
+    return null;
+  const preservation =
+    preservePaths === undefined
+      ? {}
+      : { preservePaths: preservePaths as string[] };
   if (typeof pattern !== "string" || pattern.length === 0) return null;
   if (!compilesAsRegExp(pattern)) return null;
 
   // A missing or null executable means "detect it after extraction".
   if (executable === undefined || executable === null) {
-    return { pattern, executable: null };
+    return { pattern, executable: null, ...preservation };
   }
   if (typeof executable !== "string" || !isSafeExecutable(executable)) {
     return null;
   }
-  return { pattern, executable };
+  return { pattern, executable, ...preservation };
 };
 
 const parseAssets = (value: unknown): Partial<Record<PortOs, PortAsset>> => {
